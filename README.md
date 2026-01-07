@@ -106,42 +106,43 @@ training_args = TrainingArguments(
 <br>
 
 # 3. Model Inference
-## 3.1. Input
-```json
-{
-    "text": "서울 마곡 LG유플러스 AX솔루션개발팀은 훌륭한 구성원들로 모여있는 팀이다."
-}
-```
-
-## 3.2. Output
-```json
-{
-    "input": "서울 마곡 LG유플러스 AX솔루션개발팀은 훌륭한 구성원들로 모여있는 팀이다.",
-    "result": [
+## 3.1. APIs
+* [POST] http://0.0.0.0:8000/infer
+    - Request Body
+        ```json
         {
-            "entity_group": "LC",
-            "score": 0.8558929562568665,
-            "word": "서울",
-            "start": 0,
-            "end": 2
-        },
-        {
-            "entity_group": "OG",
-            "score": 0.5763113498687744,
-            "word": "마곡",
-            "start": 3,
-            "end": 5
-        },
-        {
-            "entity_group": "OG",
-            "score": 0.9307456612586975,
-            "word": "LG유플러스 AX솔루션개발팀",
-            "start": 6,
-            "end": 21
+            "text": "서울 마곡 LG유플러스 AX솔루션개발팀은 훌륭한 구성원들로 모여있는 팀이다."
         }
-    ]
-}
-```
+        ```
+    - Response Body
+        ```json
+        {
+            "input": "서울 마곡 LG유플러스 AX솔루션개발팀은 훌륭한 구성원들로 모여있는 팀이다.",
+            "result": [
+                {
+                    "entity_group": "LC",
+                    "score": 0.8558929562568665,
+                    "word": "서울",
+                    "start": 0,
+                    "end": 2
+                },
+                {
+                    "entity_group": "OG",
+                    "score": 0.5763113498687744,
+                    "word": "마곡",
+                    "start": 3,
+                    "end": 5
+                },
+                {
+                    "entity_group": "OG",
+                    "score": 0.9307456612586975,
+                    "word": "LG유플러스 AX솔루션개발팀",
+                    "start": 6,
+                    "end": 21
+                }
+            ]
+        }
+        ```
 
 <br>
 
