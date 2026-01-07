@@ -105,21 +105,43 @@ training_args = TrainingArguments(
 
 <br>
 
-
-## 2.3. Output : F1-Score
-
-
-<br>
-
 # 3. Model Inference
-* Rule-based 사전(Dictionary) 기반 필터링/보정 후처리
-    - 입력 텍스트에서 "5G프리미엄" 같은 고정 키워드를 먼저 정규표현식이나 트라이(Trie) 구조 필터링
-        + https://pypi.org/project/flashtext/
-    - 모델 추론 : 모델이 예측한 결과와 사전 매칭 결과를 비교
-    - 후처리 : 사전 매칭 결과가 있다면 모델의 예측보다 사전의 태그를 우선시하도록 비교 로직 작성
-* fastapi 
-    - 키워드 추론
-    - 룰 (장소, 단어) 
+## 3.1. Input
+```json
+{
+    "text": "서울 마곡 LG유플러스 AX솔루션개발팀은 훌륭한 구성원들로 모여있는 팀이다."
+}
+```
+
+## 3.2. Output
+```json
+{
+    "input": "서울 마곡 LG유플러스 AX솔루션개발팀은 훌륭한 구성원들로 모여있는 팀이다.",
+    "result": [
+        {
+            "entity_group": "LC",
+            "score": 0.8558929562568665,
+            "word": "서울",
+            "start": 0,
+            "end": 2
+        },
+        {
+            "entity_group": "OG",
+            "score": 0.5763113498687744,
+            "word": "마곡",
+            "start": 3,
+            "end": 5
+        },
+        {
+            "entity_group": "OG",
+            "score": 0.9307456612586975,
+            "word": "LG유플러스 AX솔루션개발팀",
+            "start": 6,
+            "end": 21
+        }
+    ]
+}
+```
 
 <br>
 
@@ -163,5 +185,8 @@ print(classification_report(y_true, y_pred))
 <br>
 
 ---
-### References
+
+### [ References ]
 * GitHub : https://github.com/sunghyun003/consult-boosting-ner
+  
+<br>
