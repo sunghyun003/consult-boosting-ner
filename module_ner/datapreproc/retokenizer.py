@@ -24,15 +24,14 @@ def align_labels_to_inference_tokenization(examples, tokenizer):
         truncation=True,
         return_offsets_mapping=True,
     )
+    # padding='longest' -> DataCollator
 
     labels = []
     new_tokens_list = []
     for i, label in enumerate(examples["ner_tags"]):
+        # for labels (new ner_tags)
         word_ids = tokenized_inputs.word_ids(batch_index=i)
         offsets = tokenized_inputs["offset_mapping"][i]
-
-        input_ids = tokenized_inputs["input_ids"][i]
-        new_tokens_list.append(tokenizer.convert_ids_to_tokens(input_ids))
 
         label_ids = []
         for word_idx, (start, end) in zip(word_ids, offsets):
@@ -43,6 +42,10 @@ def align_labels_to_inference_tokenization(examples, tokenizer):
                 # - '영동'이라는 토큰이 원본 문장의 3번 인덱스에서 시작한다면, label[3]을 부여
                 label_ids.append(label[start])
         labels.append(label_ids)
+
+        # for tokens
+        input_ids = tokenized_inputs["input_ids"][i]
+        new_tokens_list.append(tokenizer.convert_ids_to_tokens(input_ids))
 
     tokenized_inputs["labels"] = labels
     tokenized_inputs["tokens"] = new_tokens_list  # [추가] 문자열 토큰 컬럼
