@@ -45,6 +45,7 @@ def train_ner():
             "accuracy": accuracy_score(true_labels, true_predictions),
         }
 
+    # Data Preparation
     dataset = load_dataset("parquet", data_files={
             'train': f"{DATA_DIR}/klue_ner_train_roberta_aligned.parquet",
             'validation': f"{DATA_DIR}/klue_ner_val_roberta_aligned.parquet",
@@ -58,6 +59,7 @@ def train_ner():
     print(f"* id2label: {id2label}")
     print(f"* label2id: {label2id}")
 
+    # Model & Configuration
     config = AutoConfig.from_pretrained(
         BASE_MODEL_DIR,
         num_labels=len(label_list),
@@ -72,8 +74,7 @@ def train_ner():
         config=config,
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_DIR)
-    data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
+    # Training Argument
     training_args = TrainingArguments(
         output_dir=OUTPUT_MODEL_DIR,
         overwrite_output_dir=True,
@@ -90,6 +91,9 @@ def train_ner():
         report_to="tensorboard"
     )
 
+    # Trainer API
+    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_DIR)
+    data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -101,4 +105,5 @@ def train_ner():
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]  # 3회 이상 성능 안 오르면 종료
     )
 
+    # Training
     trainer.train()
