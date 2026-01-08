@@ -68,6 +68,12 @@ def train_ner():
         hidden_dropout_prob=0.1,
         attention_probs_dropout_prob=0.1,
     )
+    # * hidden_dropout_prob=0.1,
+    #   - 1. Self-Attention의 결과가 나오고 다음 층으로 전달되기 직전 (Residual Connection 전)
+    #   - 2. FFN(Feed-Forward Network)의 두 번째 Linear 레이어 통과 직후
+    #   - 3. 최종 NER 분류기(Classifier Head) 직전
+    # * attention_probs_dropout_prob=0.1,
+    #   - 어텐션 맵(Attention Map), SoftMax 함수 처리 이후 10%
 
     model = AutoModelForTokenClassification.from_pretrained(
         BASE_MODEL_DIR,
