@@ -96,6 +96,8 @@ def train_ner():
         metric_for_best_model="f1",
         report_to="tensorboard"
     )
+    # * weight_decay=0.01,
+    #   - L2 Regularization
 
     # Trainer API
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_DIR)
