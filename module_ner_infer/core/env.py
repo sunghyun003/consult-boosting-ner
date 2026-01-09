@@ -13,6 +13,8 @@ def find_project_root(start_path: Path, marker: str = ".git") -> Path:
 # Environment
 PROJECT_ROOT_DIR = find_project_root(Path(__file__))
 CURRENT_ENV = "dev"
+DIC_PATH = "/opt/homebrew/lib/mecab/dic/mecab-ko-dic"
+
 
 # APIs
 ORIGINS_PROD = [
