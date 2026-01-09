@@ -49,6 +49,7 @@ config = AutoConfig.from_pretrained(
         num_labels=len(label_list),
         id2label=id2label,
         label2id=label2id,
+        # Dropout
         hidden_dropout_prob=0.1,
         attention_probs_dropout_prob=0.1,
     )
@@ -62,29 +63,29 @@ training_args = TrainingArguments(
         save_strategy="epoch",
         save_total_limit=2,
         learning_rate=2e-5,
+        # Regularization - Micro batch
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
-        num_train_epochs=10,
+        # Regularization - L2
         weight_decay=0.01,
         load_best_model_at_end=True,
         metric_for_best_model="f1",
+        num_train_epochs=10,
     )
 ...
 ```
 
-## 2.2. Evaluation
-```
-/Users/sunghyun03/git/consult-boosting-ner/.venv/lib/python3.13/site-packages/torch/utils/data/dataloader.py:692: UserWarning: 'pin_memory' argument is set as true but not supported on MPS now, device pinned memory won't be used.
-  warnings.warn(warn_msg)
-{'loss': 0.0168, 'grad_norm': 0.15941525995731354, 'learning_rate': 1.1623000761614625e-05, 'epoch': 4.19}                                                                                                             
-{'loss': 0.0161, 'grad_norm': 1.3545631170272827, 'learning_rate': 1.1242193450114243e-05, 'epoch': 4.38}                                                                                                              
-{'loss': 0.0185, 'grad_norm': 0.13429899513721466, 'learning_rate': 1.0861386138613863e-05, 'epoch': 4.57}                                                                                                             
-{'loss': 0.0163, 'grad_norm': 0.2579185366630554, 'learning_rate': 1.0480578827113481e-05, 'epoch': 4.76}                                                                                                              
-{'loss': 0.0172, 'grad_norm': 0.8366368412971497, 'learning_rate': 1.0099771515613102e-05, 'epoch': 4.95}                                                                                                              
-{'eval_loss': 0.11231765151023865, 'eval_precision': 0.8708879884623308, 'eval_recall': 0.8914586994727592, 'eval_f1': 0.8810532897936497, 'eval_accuracy': 0.9765978944623709, 'eval_runtime': 21.7204, 'eval_samples_per_second': 230.199, 'eval_steps_per_second': 28.775, 'epoch': 5.0}                                                                                                                                                   
-{'train_runtime': 1843.3681, 'train_samples_per_second': 113.965, 'train_steps_per_second': 14.246, 'train_loss': 0.04501724390246354, 'epoch': 5.0}                                                                   
- 50%|██████████████████████████████████████████████████████████████████████████████████████ 
-```
+<br>
+
+## 2.2. Header Layering
+* Encoder + 1 Linear Layer (Head, Fine-tuning)
+    - NER 모델은 헤드 레이어는, 테그 갯수만큼 노드/차원을 가짐.
+    - 이미 인코더에서 많은 레이어를 거쳐오고, 인코더 노드/차원 대비 테그 노드/차원 수가 상당히 작기 때문에, 1개 Linear 이상 쌓는 것은 일반적으로 성능 오버헤드를 불러일으킴.
+
+<br>
+
+## 2.3. Evaluation
+### 2.3.1. klue/roberta-base
 
 <img src="docs/img/eval-1-1.png" />
 
@@ -105,316 +106,313 @@ training_args = TrainingArguments(
 
 <br>
 
-# 3. Model Inference
-## 3.1. APIs
-* [POST] http://0.0.0.0:8000/infer
-    - Case 1) 짧은 문장
-        + Request Body
-            ```json
-            {
-                "text": "서울 마곡 LG유플러스 AX솔루션개발팀은 훌륭한 구성원들로 모여있는 팀이다."
-            }
-            ```
-        + Response Body
-            ```json
-            {
-                "result": [
-                    {
-                        "entity_group": "LC",
-                        "score": 0.8558929562568665,
-                        "word": "서울",
-                        "start": 0,
-                        "end": 2
-                    },
-                    {
-                        "entity_group": "OG",
-                        "score": 0.5763113498687744,
-                        "word": "마곡",
-                        "start": 3,
-                        "end": 5
-                    },
-                    {
-                        "entity_group": "OG",
-                        "score": 0.9307456612586975,
-                        "word": "LG유플러스 AX솔루션개발팀",
-                        "start": 6,
-                        "end": 21
-                    }
-                ]
-            }
-            ```
-    - Case 2) 긴 문장 - 일반
-        + Request Body
-            ```json
-            {
-                "text": "지난 2025년 10월 24일 오전 9시 정각에 테슬라의 일론 머스크 대표는 미국 텍사스 기가팩토리에서 새로운 자율주행 트럭 500대를 공개하는 대규모 쇼케이스를 열었습니다. 이 행사에는 전 세계 200여 개의 언론사와 약 3,000명의 관계자들이 참석했으며, 현대자동차와 같은 글로벌 경쟁 기업의 분석팀원들도 현장 분위기를 살피기 위해 집결했습니다. 발표가 이어진 2시간 동안 테슬라의 주가는 15% 이상 급등했고, 현장에서 즉석 예약된 수량만 12,000건에 달하며 역대 최대 기록을 경신했습니다. 다가오는 2026년 1월에는 한국 서울 코엑스에서 아시아 시장을 겨냥한 후속 행사를 가질 예정이라며 마케팅 팀장인 김철수 이사가 공식 인터뷰를 통해 포부를 밝혔습니다. 마지막으로 행사를 축하하기 위해 삼성전자 측에서 지원한 스마트 워치 5,000세트가 참석자 전원에게 배포되었으며, 뜨거웠던 현장의 열기는 밤 11시가 넘어서야 겨우 식기 시작했습니다."
-            }
-            ```
-            * "지난 2025년 10월 24일 오전 9시 정각에 테슬라의 일론 머스크 대표는 미국 텍사스 기가팩토리에서 새로운 자율주행 트럭 500대를 공개하는 대규모 쇼케이스를 열었습니다. 이 행사에는 전 세계 200여 개의 언론사와 약 3,000명의 관계자들이 참석했으며, 현대자동차와 같은 글로벌 경쟁 기업의 분석팀원들도 현장 분위기를 살피기 위해 집결했습니다. 발표가 이어진 2시간 동안 테슬라의 주가는 15% 이상 급등했고, 현장에서 즉석 예약된 수량만 12,000건에 달하며 역대 최대 기록을 경신했습니다. 다가오는 2026년 1월에는 한국 서울 코엑스에서 아시아 시장을 겨냥한 후속 행사를 가질 예정이라며 마케팅 팀장인 김철수 이사가 공식 인터뷰를 통해 포부를 밝혔습니다. 마지막으로 행사를 축하하기 위해 삼성전자 측에서 지원한 스마트 워치 5,000세트가 참석자 전원에게 배포되었으며, 뜨거웠던 현장의 열기는 밤 11시가 넘어서야 겨우 식기 시작했습니다."
-        + Response Body
-            ```json
-            {
-                "result": [
-                    {
-                        "entity_group": "DT",
-                        "score": 0.8937010765075684,
-                        "word": "지난 2025년 10월 24일",
-                        "start": 0,
-                        "end": 16
-                    },
-                    {
-                        "entity_group": "TI",
-                        "score": 0.9922220706939697,
-                        "word": "오전 9시 정각",
-                        "start": 17,
-                        "end": 25
-                    },
-                    {
-                        "entity_group": "OG",
-                        "score": 0.9850203990936279,
-                        "word": "테슬라",
-                        "start": 27,
-                        "end": 30
-                    },
-                    {
-                        "entity_group": "PS",
-                        "score": 0.996773898601532,
-                        "word": "일론 머스크",
-                        "start": 32,
-                        "end": 38
-                    },
-                    {
-                        "entity_group": "LC",
-                        "score": 0.9824407696723938,
-                        "word": "미국 텍사스 기가팩토리",
-                        "start": 43,
-                        "end": 55
-                    },
-                    {
-                        "entity_group": "QT",
-                        "score": 0.9958693385124207,
-                        "word": "500대",
-                        "start": 70,
-                        "end": 74
-                    },
-                    {
-                        "entity_group": "QT",
-                        "score": 0.9868373870849609,
-                        "word": "200여 개의",
-                        "start": 110,
-                        "end": 117
-                    },
-                    {
-                        "entity_group": "QT",
-                        "score": 0.9895029664039612,
-                        "word": "3, 000명",
-                        "start": 125,
-                        "end": 131
-                    },
-                    {
-                        "entity_group": "OG",
-                        "score": 0.9898701310157776,
-                        "word": "현대자동차",
-                        "start": 146,
-                        "end": 151
-                    },
-                    {
-                        "entity_group": "TI",
-                        "score": 0.9495131373405457,
-                        "word": "2시간 동안",
-                        "start": 205,
-                        "end": 211
-                    },
-                    {
-                        "entity_group": "OG",
-                        "score": 0.9854955673217773,
-                        "word": "테슬라",
-                        "start": 212,
-                        "end": 215
-                    },
-                    {
-                        "entity_group": "QT",
-                        "score": 0.9944543838500977,
-                        "word": "15 %",
-                        "start": 221,
-                        "end": 224
-                    },
-                    {
-                        "entity_group": "QT",
-                        "score": 0.9967505931854248,
-                        "word": "12, 000건",
-                        "start": 250,
-                        "end": 257
-                    },
-                    {
-                        "entity_group": "DT",
-                        "score": 0.9744736552238464,
-                        "word": "2026년 1월",
-                        "start": 286,
-                        "end": 294
-                    },
-                    {
-                        "entity_group": "LC",
-                        "score": 0.9784884452819824,
-                        "word": "한국 서울 코엑스",
-                        "start": 297,
-                        "end": 306
-                    },
-                    {
-                        "entity_group": "LC",
-                        "score": 0.9515602588653564,
-                        "word": "아시아",
-                        "start": 309,
-                        "end": 312
-                    },
-                    {
-                        "entity_group": "PS",
-                        "score": 0.9980403184890747,
-                        "word": "김철수",
-                        "start": 345,
-                        "end": 348
-                    },
-                    {
-                        "entity_group": "OG",
-                        "score": 0.9834198951721191,
-                        "word": "삼성전자",
-                        "start": 393,
-                        "end": 397
-                    },
-                    {
-                        "entity_group": "QT",
-                        "score": 0.9870311617851257,
-                        "word": "5, 000세트",
-                        "start": 413,
-                        "end": 420
-                    },
-                    {
-                        "entity_group": "TI",
-                        "score": 0.9922183156013489,
-                        "word": "밤 11시",
-                        "start": 452,
-                        "end": 457
-                    }
-                ]
-            }
-            ```
-    - Case 3) 긴 문장 - 통신 도메인
-        + Request Body
-            ```json
-            {
-                "text": "안녕하세요, 김아무개 고객님! LG유플러스 AICC 지능형 상담사입니다. 5G 프리미엄 요금제의 핵심 혜택인 유튜브 프리미엄 연동 문제로 연락 주셨군요. 즐거운 영상 시청 중에 흐름이 끊겨 많이 답답하셨을 텐데, 제가 빠르게 해결 도와드리겠습니다! 많이 번거로우셨죠. 고객님의 소중한 권리를 되찾아드리기 위해 현재 상태를 체크해 보니, [계정 미연동] 상태로 확인됩니다. 보통 이 문제는 세 가지 경우에 발생하는데요. 바로 해결 가능한 '치트키'를 안내해 드릴게요. 고객님, 지금 바로 고객님의 휴대폰으로 '원클릭 연동 링크'를 발송해 드렸습니다. 이 링크를 누르시면 복잡한 절차 없이 구글 계정 선택만으로 연동이 완료됩니다. 성공하셨다니 정말 다행입니다! 이제 광고 없는 쾌적한 영상 시청 즐기시길 바랍니다. 추가로 5G 프리미엄 요금제에 포함된 다른 미디어 혜택(VOD 쿠폰 등)도 아직 미사용 중이신데, 관련 안내 문자를 함께 보내드릴까요? 별씀을요! 김아무개 고객님, 오늘도 프리미엄한 하루 보내세요. 지금까지 AICC 상담사였습니다!"
-            }
-            ```
-            * "안녕하세요, 김아무개 고객님! LG유플러스 AICC 지능형 상담사입니다. 5G 프리미엄 요금제의 핵심 혜택인 유튜브 프리미엄 연동 문제로 연락 주셨군요. 즐거운 영상 시청 중에 흐름이 끊겨 많이 답답하셨을 텐데, 제가 빠르게 해결 도와드리겠습니다! 많이 번거로우셨죠. 고객님의 소중한 권리를 되찾아드리기 위해 현재 상태를 체크해 보니, [계정 미연동] 상태로 확인됩니다. 보통 이 문제는 세 가지 경우에 발생하는데요. 바로 해결 가능한 '치트키'를 안내해 드릴게요. 고객님, 지금 바로 고객님의 휴대폰으로 '원클릭 연동 링크'를 발송해 드렸습니다. 이 링크를 누르시면 복잡한 절차 없이 구글 계정 선택만으로 연동이 완료됩니다. 성공하셨다니 정말 다행입니다! 이제 광고 없는 쾌적한 영상 시청 즐기시길 바랍니다. 추가로 5G 프리미엄 요금제에 포함된 다른 미디어 혜택(VOD 쿠폰 등)도 아직 미사용 중이신데, 관련 안내 문자를 함께 보내드릴까요? 별씀을요! 김아무개 고객님, 오늘도 프리미엄한 하루 보내세요. 지금까지 AICC 상담사였습니다!"
-        + Response Body
-            ```json
-            {
-                "result": [
-                    {
-                        "entity_group": "PS",
-                        "score": 0.9185789227485657,
-                        "word": "김아",
-                        "start": 7,
-                        "end": 9
-                    },
-                    {
-                        "entity_group": "OG",
-                        "score": 0.9643535614013672,
-                        "word": "LG유플러스 AICC",
-                        "start": 17,
-                        "end": 28
-                    },
-                    {
-                        "entity_group": "QT",
-                        "score": 0.7189666628837585,
-                        "word": "5G",
-                        "start": 41,
-                        "end": 43
-                    },
-                    {
-                        "entity_group": "QT",
-                        "score": 0.9896253347396851,
-                        "word": "세 가지",
-                        "start": 217,
-                        "end": 221
-                    },
-                    {
-                        "entity_group": "QT",
-                        "score": 0.7113736271858215,
-                        "word": "##G",
-                        "start": 403,
-                        "end": 404
-                    },
-                    {
-                        "entity_group": "PS",
-                        "score": 0.903061032295227,
-                        "word": "김아",
-                        "start": 480,
-                        "end": 482
-                    },
-                    {
-                        "entity_group": "DT",
-                        "score": 0.9103196859359741,
-                        "word": "오늘",
-                        "start": 490,
-                        "end": 492
-                    },
-                    {
-                        "entity_group": "DT",
-                        "score": 0.9374863505363464,
-                        "word": "하루",
-                        "start": 500,
-                        "end": 502
-                    },
-                    {
-                        "entity_group": "OG",
-                        "score": 0.9354147911071777,
-                        "word": "AICC",
-                        "start": 514,
-                        "end": 518
-                    }
-                ]
-            }
-            ```
+### 2.3.2. klue/roberta-large
+
+<img src="docs/img/eval-1-2.png" />
+
+| Epoch | Train Loss | Eval Loss | Eval Precision | Eval Recall | Eval F1 | Eval Accuracy | 비고 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1.0 | 0.0881* | 0.0760 | 0.8727 | 0.8954 | 0.8839 | 0.9779 | |
+| **2.0** | **0.0470*** | **0.0767** | **0.8847** | **0.9031** | **0.8938** | **0.9790** | **Best Model** |
+| 3.0 | 0.0314* | 0.0984 | 0.8844 | 0.8883 | 0.8864 | 0.9774 | 과적합 시작 |
+| 4.0 | 0.0212* | 0.1102 | 0.8810 | 0.8943 | 0.8876 | 0.9783 | |
+| 5.0 | 0.0126* | 0.1097 | 0.8944 | 0.8983 | 0.8963 | 0.9790 | |
+| 6.0 | 0.0087* | 0.1341 | 0.8893 | 0.8953 | 0.8923 | 0.9783 | |
+| 7.0 | 0.0048* | 0.1534 | 0.8862 | 0.8941 | 0.8901 | 0.9782 | |
+| 8.0 | 0.0031* | 0.1661 | 0.8865 | 0.8938 | 0.8901 | 0.9781 | 학습 종료 |
 
 <br>
 
-# 4. Model Evaluation (TBD, 개선 예정)
-## 4.1. Accuracy
-* Confusion Matrix : Precision, Recall, F1-Score
-```
-from seqeval.metrics import classification_report
+# 3. 은전한닢(MeCab) - 사용자 정의 사전/형태소
+> * 맥북 M2 기준, homebrew 설치가 가장 깔끔합니다.
+> * 파이썬에서 연동해서 사용하려면, `mecab-python3`를 설치해야합니다.
+> * Linux는 실제 binary를 다운받아 설치하거나, `bash <(curl -s https://raw.githubusercontent.com/konlpy/konlpy/master/scripts/mecab.sh)` 실행
 
-y_true = [["O", "O", "O", "B-MISC", "I-MISC", "I-MISC", "O"],
-          ["B-PER", "I-PER", "O"]]
-y_pred = [["O", "O", "B-MISC", "I-MISC", "I-MISC", "I-MISC", "O"],
-          ["B-PER", "I-PER", "O"]]
-print(classification_report(y_true, y_pred))
+<br>
+
+## 3.1. MeCab 설치
+### 3.1.1. MeCab 엔진 및 사전 설치
 ```
-```
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+brew unlink mecab
+brew install mecab-ko mecab-ko-dic
+
+# 한국어 사전 경로 확인 (표준 경로)
+/opt/homebrew/lib/mecab/dic/mecab-ko-dic
 ```
 
-## 4.2. Generalization
-* Train-Validation Split 후 태그 균형 체크
-    - 5GPLN, MVAS, ORG 빈도 분포가 대체로 각 분할에서 동일한지 검토
-    - 따라서 이 검증 세트와 테스트 세트는 NER 태그의 일반화 능력을 평가
-
+### 3.1.2. 필요 Python 패키지 설치
 ```
-from seqeval.metrics import classification_report
+poetry add konlpy
+poetry add mecab-python3
 
-y_true = [["O", "O", "O", "B-MISC", "I-MISC", "I-MISC", "O"],
-          ["B-PER", "I-PER", "O"]]
-y_pred = [["O", "O", "B-MISC", "I-MISC", "I-MISC", "I-MISC", "O"],
-          ["B-PER", "I-PER", "O"]]
-print(classification_report(y_true, y_pred))
+(OR)
+
+pip install konlpy mecab-python3
 ```
+
+<br>
+
+## 3.2. User Dictionary 설정
+### 3.2.1. 사전 생성/초기화
+```
+# 사용자 사전 폴더 생성
+sudo mkdir -p /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user-dic
+cd /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user-dic
+
+# 사용자 사전 CSV 작성 
+# * 단어,0,0,0,품사,의미부류,종성유무,읽기,타입,첫품사,마지막품사,표현)
+#   - 혹은 빈 파일 csv 파일 생성해도 됨.
+echo "5G프리미엄,0,0,0,NNP,*,T,5G프리미엄,*,*,*,*,*" | sudo tee user.csv
+```
+
+### 3.2.2. 사전 컴파일 (바이너리 생성)
+```
+# mecab-ko 전용 인덱스 도구 위치 확인 후 실행
+sudo /opt/homebrew/Cellar/mecab-ko/0.996-ko-0.9.2/libexec/mecab/mecab-dict-index \
+-d /opt/homebrew/lib/mecab/dic/mecab-ko-dic \
+-u /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user.dic \
+-f utf-8 -t utf-8 \
+user.csv
+```
+
+### 3.2.3. dicrc 설정
+```
+# rc 파일 수정
+sudo vi /opt/homebrew/lib/mecab/dic/mecab-ko-dic/dicrc
+
+# 파일 맨 아래에 다음 내용 추가
+userdic = /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user.dic
+
+# 강제 저장 및 종료
+:w!
+:q
+```
+
+<br>
+
+### 3.2.4. 사전 업데이트
+mecab-ko-dic 품사 태그
+<img src="img/tokenizer-mecab-1-1.png" width="70%" height="70%"/>
+
+MeCab 사용자 사전 CSV 컬럼 정의서
+<img src="img/tokenizer-mecab-1-2.png" width="70%" height="70%"/>
+
+#### (1) 업데이트
+```
+sudo vi /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user-dic/user.csv
+
+<!-- 아래의 내용 추가 (원하는 복합어, 품사 태깅도 가능)-->
+5G프리미엄,0,0,0,NNP,*,T,5G프리미엄,*,*,*,*,*
+기가인터넷,0,0,0,NNP,*,T,기가인터넷,*,*,*,*,*
+```
+
+#### (2) 사용자 사전 재컴파일 (바이너리 업데이트)
+```
+# 1. 사전 루트 경로 이동
+cd /opt/homebrew/lib/mecab/dic/mecab-ko-dic
+
+# 2. 컴파일 명령 재실행
+sudo /opt/homebrew/Cellar/mecab-ko/0.996-ko-0.9.2/libexec/mecab/mecab-dict-index \
+-d /opt/homebrew/lib/mecab/dic/mecab-ko-dic \
+-u /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user.dic \
+-f utf-8 -t utf-8 \
+user-dic/user.csv
+```
+
+##### Tip) 컴파일 전후 용량 비교
+```
+ls -lh /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user.dic
+```
+
+#### (3) 테스트
+##### test.py
+```python
+from konlpy.tag import Mecab
+DIC_PATH = "/opt/homebrew/lib/mecab/dic/mecab-ko-dic"
+mecab = Mecab(dicpath=DIC_PATH)
+
+text = "5G프리미엄 요금제는 정말 빠르네요. 기가인터넷 속도가 정말 빠르네요."
+
+print(f"형태소 분석: {mecab.morphs(text)}")
+print(f"품사 태깅: {mecab.pos(text)}")
+```
+##### output
+```
+형태소 분석: ['5G프리미엄', '요금제', '는', '정말', '빠르', '네요', '.', '기가인터넷', '속도', '가', '정말', '빠르', '네요', '.']
+품사 태깅: [('5G프리미엄', 'NNP'), ('요금제', 'NNP'), ('는', 'JX'), ('정말', 'MAG'), ('빠르', 'VA'), ('네요', 'EF'), ('.', 'SF'), ('기가인터넷', 'NNP'), ('속도', 'NNG'), ('가', 'JKS'), ('정말', 'MAG'), ('빠르', 'VA'), ('네요', 'EF'), ('.', 'SF')]
+```
+
+<br>
+
+# 4. Model Inference
+## 4.1. APIs
+* [POST] http://0.0.0.0:8000/infer
+    - Request Body
+        ```json
+        {
+            "text": "친절한 답변 주셔서 감사해요. 저는 5G프리미엄 요금제 데이터 사용량과 구글 AI 부가서비스 (특히 멀티 미디어팩)이 너무 좋네요. 기가인터넷 속도 또한 정말 만족스럽구요. 저는 LG유플러스, LG U+ 정말 최고라고 생각해요! 저는 앞으로도 꾸준히 사용할거예요! 홍범석님 사랑해요!"
+        }
+        ```
+        + NER (Model-based)
+            * 친절한 답변 주셔서 감사해요. 저는 5G프리미엄 요금제 데이터 사용량과 구글 AI 부가서비스 (특히 멀티 미디어팩)이 너무 좋네요. 기가인터넷 속도 또한 정말 만족스럽구요. 저는 LG유플러스, LG U+ 정말 최고라고 생각해요! 저는 앞으로도 꾸준히 사용할거예요! 홍범석님 사랑해요!
+        + MeCab (Rule-based)
+            * "친절한 답변 주셔서 감사해요. 저는 5G프리미엄 요금제 데이터 사용량과 구글 AI 부가서비스 (특히 멀티 미디어팩)이 너무 좋네요. 기가인터넷 속도 또한 정말 만족스럽구요. 저는 LG유플러스, LG U+ 정말 최고라고 생각해요! 저는 앞으로도 꾸준히 사용할거예요! 홍범석님 사랑해요!"
+    - Response Body
+        ```json
+        {
+            "result": {
+                "ner": [
+                    {
+                        "entity_group": "QT",
+                        "score": 0.9962207674980164,
+                        "word": "5G",
+                        "start": 20,
+                        "end": 22
+                    },
+                    {
+                        "entity_group": "OG",
+                        "score": 0.8054287433624268,
+                        "word": "구글",
+                        "start": 40,
+                        "end": 42
+                    },
+                    {
+                        "entity_group": "OG",
+                        "score": 0.999323308467865,
+                        "word": "LG유플러스",
+                        "start": 100,
+                        "end": 106
+                    },
+                    {
+                        "entity_group": "OG",
+                        "score": 0.993382453918457,
+                        "word": "LG U +",
+                        "start": 108,
+                        "end": 113
+                    },
+                    {
+                        "entity_group": "PS",
+                        "score": 0.9996474385261536,
+                        "word": "홍범석",
+                        "start": 148,
+                        "end": 151
+                    }
+                ],
+                "mecab": [
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "친절"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "답변"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "감사"
+                    },
+                    {
+                        "entity_group": "NNP",
+                        "score": 1,
+                        "word": "5G프리미엄"
+                    },
+                    {
+                        "entity_group": "NNP",
+                        "score": 1,
+                        "word": "요금제"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "데이터"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "사용량"
+                    },
+                    {
+                        "entity_group": "NNP",
+                        "score": 1,
+                        "word": "구글 AI"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "부가서비스"
+                    },
+                    {
+                        "entity_group": "NNP",
+                        "score": 1,
+                        "word": "멀티 미디어팩"
+                    },
+                    {
+                        "entity_group": "NNP",
+                        "score": 1,
+                        "word": "기가인터넷"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "속도"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "만족"
+                    },
+                    {
+                        "entity_group": "NNP",
+                        "score": 1,
+                        "word": "LG유플러스"
+                    },
+                    {
+                        "entity_group": "NNP",
+                        "score": 1,
+                        "word": "LG U+"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "최고"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "생각"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "앞"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "사용"
+                    },
+                    {
+                        "entity_group": "NNP",
+                        "score": 1,
+                        "word": "홍범석"
+                    },
+                    {
+                        "entity_group": "NNG",
+                        "score": 1,
+                        "word": "사랑"
+                    }
+                ]
+            }
+        }
+        ```
 
 <br>
 
 # 5. Future Works
 1. 보안 클라우드에서 학습, 추론
-2. 성능평가 개선
 
 <br>
 
