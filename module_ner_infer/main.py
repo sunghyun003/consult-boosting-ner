@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     try:
         # Ensure all required files are present
         print("Ensuring required model ...")
-        required_model_path = f"{env.PROJECT_ROOT_DIR}/models/roberta-klue-ner"
+        required_model_path = f"{env.PROJECT_ROOT_DIR}/models/roberta-large-klue-ner/checkpoint-13130"
         dic_path = f"{env.DIC_PATH}"
 
         # Load the model

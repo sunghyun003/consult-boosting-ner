@@ -20,8 +20,8 @@ from module_ner.config import env
 
 model_id = 'klue/roberta-base'
 DATA_DIR = f'{env.PROJECT_ROOT_DIR}/data/external/klue/ner'
-BASE_MODEL_DIR = f'{env.PROJECT_ROOT_DIR}/models/roberta-base'
-OUTPUT_MODEL_DIR = f'{env.PROJECT_ROOT_DIR}/models/roberta-klue-ner'
+BASE_MODEL_DIR = f'{env.PROJECT_ROOT_DIR}/models/roberta-large'
+OUTPUT_MODEL_DIR = f'{env.PROJECT_ROOT_DIR}/models/roberta-large-klue-ner'
 
 
 def train_ner():
@@ -65,6 +65,7 @@ def train_ner():
         num_labels=len(label_list),
         id2label=id2label,
         label2id=label2id,
+        # Dropout
         hidden_dropout_prob=0.1,
         attention_probs_dropout_prob=0.1,
     )
@@ -86,18 +87,20 @@ def train_ner():
         overwrite_output_dir=True,
         eval_strategy="epoch",
         save_strategy="epoch",
-        save_total_limit=2,
+        save_total_limit=5,
         learning_rate=2e-5,
+        # Regularization - Micro batch
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
-        num_train_epochs=10,
+        # Regularization - L2
         weight_decay=0.01,
         load_best_model_at_end=True,
+        num_train_epochs=10,
         metric_for_best_model="f1",
-        report_to="tensorboard"
+        # metric_for_best_model="eval_loss",
+        # greater_is_better=False,
+        report_to="tensorboard",
     )
-    # * weight_decay=0.01,
-    #   - L2 Regularization
 
     # Trainer API
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_DIR)
@@ -115,3 +118,5 @@ def train_ner():
 
     # Training
     trainer.train()
+
+    #
