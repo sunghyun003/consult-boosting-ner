@@ -85,8 +85,11 @@ training_args = TrainingArguments(
 <br>
 
 ## 2.3. Evaluation
-* train-set : 21,008
-* validation-set : 5000
+* Model
+    - klue/roberta-large + fine-tuning
+* DataSet
+    - train-set : 21,008
+    - validation-set : 5000
 
 ### 2.3.1. klue/roberta-base
 
