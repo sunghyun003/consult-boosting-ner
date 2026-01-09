@@ -192,10 +192,12 @@ userdic = /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user.dic
 
 ### 3.2.4. 사전 업데이트
 mecab-ko-dic 품사 태그
-<img src="img/tokenizer-mecab-1-1.png" width="70%" height="70%"/>
+
+<img src="docs/img/tokenizer-mecab-1-1.png" width="70%" height="70%"/>
 
 MeCab 사용자 사전 CSV 컬럼 정의서
-<img src="img/tokenizer-mecab-1-2.png" width="70%" height="70%"/>
+
+<img src="docs/img/tokenizer-mecab-1-2.png" width="70%" height="70%"/>
 
 #### (1) 업데이트
 ```
