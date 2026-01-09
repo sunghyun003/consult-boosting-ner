@@ -5,6 +5,7 @@ from transformers import (
     AutoModelForTokenClassification,
     pipeline,
 )
+from konlpy.tag import Mecab
 
 
 class NERInferenceService:
@@ -35,3 +36,24 @@ class NERInferenceService:
             {**res, "score": float(res["score"])}
             for res in raw_results
         ]
+
+
+class MeCabInferenceService:
+    def __init__(self, dic_path: str):
+        print(f"DEBUG: Loading MeCab with DIC_PATH: {dic_path}")
+        self.mecab = Mecab(dicpath=dic_path)
+
+    def infer(self, text: str):
+        raw_results = self.mecab.pos(text)
+        print(f"DEBUG MeCab Raw: {raw_results}")
+        filtered_results = []
+        for (word, pos) in raw_results:
+            if pos == "NNP" or pos == "NNG":
+                print(f"{word}, {pos}")
+                filtered_results.append({
+                    'entity_group': pos,
+                    'score': 1,
+                    'word': word,
+                })
+
+        return filtered_results

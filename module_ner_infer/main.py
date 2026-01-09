@@ -8,7 +8,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from module_ner_infer.core import env
-from module_ner_infer.services.inference import NERInferenceService
+from module_ner_infer.services.inference import (
+    NERInferenceService,
+    MeCabInferenceService,
+)
 from module_ner_infer.api import api_router
 
 
@@ -18,9 +21,12 @@ async def lifespan(app: FastAPI):
         # Ensure all required files are present
         print("Ensuring required model ...")
         required_model_path = f"{env.PROJECT_ROOT_DIR}/models/roberta-klue-ner"
+        dic_path = f"{env.DIC_PATH}"
 
         # Load the model
         app.state.ner_service = NERInferenceService(model_path=required_model_path)
+        app.state.mecab_service = MeCabInferenceService(dic_path=dic_path)
+
         print(f"Model loaded from {required_model_path}")
     except Exception as exc:
         print(f"Failed to load model: {exc}")

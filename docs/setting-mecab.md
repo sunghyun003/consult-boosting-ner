@@ -79,23 +79,6 @@ sudo vi /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user-dic/user.csv
 5G프리미엄,0,0,0,NNP,*,T,5G프리미엄,*,*,*,*,*
 기가인터넷,0,0,0,NNP,*,T,기가인터넷,*,*,*,*,*
 ```
-    
-#### 1) test.py
-```python
-from konlpy.tag import Mecab
-DIC_PATH = "/opt/homebrew/lib/mecab/dic/mecab-ko-dic"
-mecab = Mecab(dicpath=DIC_PATH)
-
-text = "5G프리미엄 요금제는 정말 빠르네요. 기가인터넷 속도가 정말 빠르네요."
-
-print(f"형태소 분석: {mecab.morphs(text)}")
-print(f"품사 태깅: {mecab.pos(text)}")
-```
-#### 2) output
-```
-형태소 분석: ['5G프리미엄', '요금제', '는', '정말', '빠르', '네요', '.', '기가인터넷', '속도', '가', '정말', '빠르', '네요', '.']
-품사 태깅: [('5G프리미엄', 'NNP'), ('요금제', 'NNP'), ('는', 'JX'), ('정말', 'MAG'), ('빠르', 'VA'), ('네요', 'EF'), ('.', 'SF'), ('기가인터넷', 'NNP'), ('속도', 'NNG'), ('가', 'JKS'), ('정말', 'MAG'), ('빠르', 'VA'), ('네요', 'EF'), ('.', 'SF')]
-```
 
 ### (2) 사용자 사전 재컴파일 (바이너리 업데이트)
 ```
@@ -113,6 +96,24 @@ user-dic/user.csv
 #### Tip) 컴파일 전후 용량 비교
 ```
 ls -lh /opt/homebrew/lib/mecab/dic/mecab-ko-dic/user.dic
+```
+
+### (3) 테스트
+#### 1) test.py
+```python
+from konlpy.tag import Mecab
+DIC_PATH = "/opt/homebrew/lib/mecab/dic/mecab-ko-dic"
+mecab = Mecab(dicpath=DIC_PATH)
+
+text = "5G프리미엄 요금제는 정말 빠르네요. 기가인터넷 속도가 정말 빠르네요."
+
+print(f"형태소 분석: {mecab.morphs(text)}")
+print(f"품사 태깅: {mecab.pos(text)}")
+```
+#### 2) output
+```
+형태소 분석: ['5G프리미엄', '요금제', '는', '정말', '빠르', '네요', '.', '기가인터넷', '속도', '가', '정말', '빠르', '네요', '.']
+품사 태깅: [('5G프리미엄', 'NNP'), ('요금제', 'NNP'), ('는', 'JX'), ('정말', 'MAG'), ('빠르', 'VA'), ('네요', 'EF'), ('.', 'SF'), ('기가인터넷', 'NNP'), ('속도', 'NNG'), ('가', 'JKS'), ('정말', 'MAG'), ('빠르', 'VA'), ('네요', 'EF'), ('.', 'SF')]
 ```
 
 <br>
